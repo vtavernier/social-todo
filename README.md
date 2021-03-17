@@ -1,4 +1,4 @@
-# social-todo
+# [social-todo](https://github.com/vtavernier/social-todo)
 
 ![Client Status](https://github.com/vtavernier/social-todo/workflows/client/badge.svg)
 ![Server Status](https://github.com/vtavernier/social-todo/workflows/server/badge.svg)
