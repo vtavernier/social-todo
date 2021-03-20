@@ -29,6 +29,10 @@ struct Opts {
     /// Path to static files to serve as root
     #[structopt(short, long)]
     webroot: Option<PathBuf>,
+
+    /// Skip loading .env
+    #[structopt(long)]
+    no_env: bool,
 }
 
 fn resolve_webroot(webroot: &Option<PathBuf>) -> std::io::Result<PathBuf> {
@@ -46,6 +50,13 @@ fn resolve_webroot(webroot: &Option<PathBuf>) -> std::io::Result<PathBuf> {
 async fn main() -> std::io::Result<()> {
     // Load options
     let opts = Opts::from_args();
+
+    // Load environment variables
+    let dotenv_path = if !opts.no_env {
+        Some(dotenv::dotenv())
+    } else {
+        None
+    };
 
     // Initialize logger
     tracing_subscriber::fmt()
@@ -67,6 +78,18 @@ async fn main() -> std::io::Result<()> {
         .without_time()
         .finish()
         .init();
+
+    // Now that we have logging, we can log the dotenv status
+    if let Some(dotenv_path) = dotenv_path {
+        match dotenv_path {
+            Ok(path) => {
+                info!(path = %path.display(), "loaded environment from file");
+            }
+            Err(error) => {
+                warn!(%error, "no environment file loaded");
+            }
+        }
+    }
 
     let server = HttpServer::new({
         let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
