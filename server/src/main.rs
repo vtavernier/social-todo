@@ -1,11 +1,13 @@
 #[macro_use]
-extern crate log;
+extern crate tracing;
 
 use std::path::PathBuf;
 
-use actix_web::{get, middleware, web, App, HttpResponse, HttpServer, Result};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Result};
 use serde_json::json;
 use structopt::StructOpt;
+
+use tracing_subscriber::util::SubscriberInitExt;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -46,42 +48,41 @@ async fn main() -> std::io::Result<()> {
     let opts = Opts::from_args();
 
     // Initialize logger
-    env_logger::Builder::from_env(
-        env_logger::Env::new()
-            .filter_or("SOCIAL_TODO_LOG", {
-                let level = match opts.verbose {
-                    0 => "warn",
-                    1 => "info",
-                    2 => "debug",
-                    _ => "trace",
-                };
-
-                format!(
-                    "actix_web::middleware::logger={level},social_todo_server={level}",
-                    level = level
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_env("SOCIAL_TODO_LOG").unwrap_or_else(|_| {
+                tracing_subscriber::EnvFilter::from_default_env().add_directive(
+                    match opts.verbose {
+                        0 => "warn",
+                        1 => "info",
+                        2 => "debug",
+                        _ => "trace",
+                    }
+                    .parse()
+                    .unwrap(),
                 )
-            })
-            .write_style("SOCIAL_TODO_LOG_STYLE"),
-    )
-    .format_timestamp(None)
-    .try_init()
-    .ok();
+            }),
+        )
+        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
+        .without_time()
+        .finish()
+        .init();
 
     let server = HttpServer::new({
         let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
             Ok(path) => {
-                info!("resolved webroot to {}", path.display());
+                info!(path = %path.display(), "resolved webroot");
                 Some(path)
             }
             Err(error) => {
-                warn!("could not resolve webroot: {}", error);
+                warn!(%error, "could not resolve webroot");
                 None
             }
         };
 
         move || {
             let app = App::new()
-                .wrap(middleware::Logger::default())
+                .wrap(tracing_actix_web::TracingLogger)
                 .service(web::scope("/api/v1").service(index));
 
             if let Some(webroot) = &webroot {
@@ -93,7 +94,7 @@ async fn main() -> std::io::Result<()> {
     })
     .bind(&opts.bind)?;
 
-    info!("social-todo-server running at http://{}", &opts.bind);
+    info!(bind = opts.bind.as_str(), "social-todo-server running");
 
     server.run().await
 }
