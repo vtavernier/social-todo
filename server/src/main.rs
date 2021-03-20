@@ -3,18 +3,12 @@ extern crate tracing;
 
 use std::path::PathBuf;
 
-use actix_web::{get, web, App, HttpResponse, HttpServer, Result};
-use serde_json::json;
+use actix_web::{App, HttpServer};
 use structopt::StructOpt;
 
 use tracing_subscriber::util::SubscriberInitExt;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-#[get("/")]
-async fn index() -> Result<HttpResponse> {
-    Ok(HttpResponse::Ok().json(json!({ "version": VERSION })))
-}
+mod api;
 
 #[derive(StructOpt)]
 struct Opts {
@@ -106,7 +100,7 @@ async fn main() -> std::io::Result<()> {
         move || {
             let app = App::new()
                 .wrap(tracing_actix_web::TracingLogger)
-                .service(web::scope("/api/v1").service(index));
+                .configure(api::config);
 
             if let Some(webroot) = &webroot {
                 app.service(actix_files::Files::new("/", &webroot).index_file("index.html"))
