@@ -80,6 +80,11 @@ export default {
           title: 'Inspire',
           to: '/inspire',
         },
+        {
+          icon: 'mdi-users',
+          title: 'Users',
+          to: '/users',
+        },
       ],
       miniVariant: false,
       right: true,

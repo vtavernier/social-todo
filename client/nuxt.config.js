@@ -68,6 +68,10 @@ export default {
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {},
 
+  generate: {
+    routes: ['/users/_id/'],
+  },
+
   ...(process.env.NODE_ENV === 'development' && {
     proxy: {
       '/api': 'http://localhost:8880',

@@ -9,6 +9,7 @@ use structopt::StructOpt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 mod api;
+mod models;
 
 #[derive(StructOpt)]
 struct Opts {
@@ -40,8 +41,20 @@ fn resolve_webroot(webroot: &Option<PathBuf>) -> std::io::Result<PathBuf> {
     }
 }
 
+async fn serve_file(webroot: PathBuf, target: &str) -> impl actix_web::Responder {
+    actix_files::NamedFile::open(webroot.join(target))
+}
+
+fn file_service(webroot: &PathBuf, target: &'static str) -> actix_web::Route {
+    let webroot = webroot.to_owned();
+    actix_web::web::get().to(move || serve_file(webroot.clone(), target))
+}
+
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> color_eyre::eyre::Result<()> {
+    // Install eyre handler
+    color_eyre::install()?;
+
     // Load options
     let opts = Opts::from_args();
 
@@ -85,6 +98,14 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
+    // Create the database connection pool
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
+    info!(%database_url, "connecting to database");
+
+    let db_pool = sqlx::postgres::PgPoolOptions::new()
+        .connect(&&database_url)
+        .await?;
+
     let server = HttpServer::new({
         let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
             Ok(path) => {
@@ -99,11 +120,17 @@ async fn main() -> std::io::Result<()> {
 
         move || {
             let app = App::new()
+                .data(db_pool.clone())
                 .wrap(tracing_actix_web::TracingLogger)
                 .configure(api::config);
 
             if let Some(webroot) = &webroot {
-                app.service(actix_files::Files::new("/", &webroot).index_file("index.html"))
+                app.route("/users/", file_service(webroot, "users/index.html"))
+                    .route(
+                        "/users/{id}/",
+                        file_service(webroot, "users/_id/index.html"),
+                    )
+                    .service(actix_files::Files::new("/", &webroot).index_file("index.html"))
             } else {
                 app
             }
@@ -113,5 +140,7 @@ async fn main() -> std::io::Result<()> {
 
     info!(bind = opts.bind.as_str(), "social-todo-server running");
 
-    server.run().await
+    server.run().await?;
+
+    Ok(())
 }

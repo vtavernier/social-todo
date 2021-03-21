@@ -83,6 +83,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
+import { mapState } from 'vuex'
 import { Component } from 'nuxt-property-decorator'
 import Logo from '~/components/Logo.vue'
 import VuetifyLogo from '~/components/VuetifyLogo.vue'
@@ -94,14 +95,11 @@ import { backendStore } from '~/store'
     Logo,
     VuetifyLogo,
   },
+  computed: { ...mapState('backend', ['version']) },
 })
 export default class Index extends Vue {
-  get version() {
-    return backendStore.version
-  }
-
   async mounted() {
-    await this.$store.dispatch('backend/fetch')
+    await backendStore.fetch()
   }
 }
 </script>

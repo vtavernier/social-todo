@@ -1,5 +1,5 @@
 import { Module, VuexModule, MutationAction } from 'vuex-module-decorators'
-import api from '~/utils/api'
+import { api } from '~/utils/api'
 
 @Module({
   name: 'backend',
@@ -7,7 +7,7 @@ import api from '~/utils/api'
   stateFactory: true,
 })
 export default class BackendModule extends VuexModule {
-  version: string = ''
+  version: string | null = null
 
   @MutationAction({ mutate: ['version'], rawError: true })
   async fetch() {
