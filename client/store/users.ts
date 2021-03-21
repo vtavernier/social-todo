@@ -1,4 +1,10 @@
-import { Module, VuexModule, MutationAction, Action, Mutation } from 'vuex-module-decorators'
+import {
+  Module,
+  VuexModule,
+  MutationAction,
+  Action,
+  Mutation,
+} from 'vuex-module-decorators'
 import { api, UserDetails } from '~/utils/api'
 
 @Module({

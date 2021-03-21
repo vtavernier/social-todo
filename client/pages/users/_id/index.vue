@@ -2,7 +2,9 @@
   <v-row>
     <v-col cols="12" sm="8" md="6">
       <h1>
-        User details<template v-if="currentUser">: {{ currentUser.name }}</template>
+        User details<template v-if="currentUser"
+          >: {{ currentUser.name }}</template
+        >
       </h1>
       <template v-if="currentUser">
         <dl>
