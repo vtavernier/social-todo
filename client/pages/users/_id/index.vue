@@ -1,20 +1,35 @@
 <template>
-  <v-row>
+  <v-row justify="center">
     <v-col cols="12" sm="8" md="6">
-      <h1>
-        User details<template v-if="currentUser"
-          >: {{ currentUser.name }}</template
-        >
-      </h1>
-      <template v-if="currentUser">
-        <dl>
-          <dt>Name:</dt>
-          <dd>{{ currentUser.name }}</dd>
-          <dt>Role:</dt>
-          <dd>{{ currentUser.role }}</dd>
-        </dl>
-      </template>
-      <v-skeleton-loader v-else type="article"></v-skeleton-loader>
+      <v-card v-if="currentUser">
+        <v-card-title>
+          {{ currentUser.name }}
+        </v-card-title>
+
+        <v-list v-if="currentUser">
+          <v-list-item>
+            <v-list-item-content>
+              <v-list-item-title>{{ currentUser.id }}</v-list-item-title>
+              <v-list-item-subtitle>Id</v-list-item-subtitle>
+            </v-list-item-content>
+          </v-list-item>
+
+          <v-list-item>
+            <v-list-item-content>
+              <v-list-item-title>{{ currentUser.role }}</v-list-item-title>
+              <v-list-item-subtitle>Role</v-list-item-subtitle>
+            </v-list-item-content>
+          </v-list-item>
+
+          <v-list-item>
+            <v-list-item-content>
+              <v-list-item-title>{{ currentUser.createdAt }}</v-list-item-title>
+              <v-list-item-subtitle>Registered</v-list-item-subtitle>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
+      </v-card>
+      <v-skeleton-loader v-else type="card"></v-skeleton-loader>
     </v-col>
   </v-row>
 </template>

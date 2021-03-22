@@ -1,13 +1,24 @@
 <template>
-  <v-row>
+  <v-row justify="center">
     <v-col cols="12" sm="8" md="6">
-      <h1>List of users</h1>
-      <ul v-if="users !== null">
-        <li v-for="user in users" :key="user.id">
-          <nuxt-link :to="`/users/${user.id}/`">{{ user.name }}</nuxt-link>
-        </li>
-      </ul>
-      <v-skeleton-loader v-else type="list-item@3"></v-skeleton-loader>
+      <v-card>
+        <v-card-title v-text="'List of users'" />
+
+        <v-list v-if="users !== null">
+          <v-list-item
+            v-for="(user, i) in users"
+            :key="i"
+            :to="`/users/${user.id}/`"
+          >
+            <v-list-item-content>
+              <v-list-item-title v-text="user.name" />
+              <v-list-item-subtitle v-text="user.role" />
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
+
+        <v-skeleton-loader v-else type="list-item@3"></v-skeleton-loader>
+      </v-card>
     </v-col>
   </v-row>
 </template>
