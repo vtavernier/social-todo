@@ -1,0 +1,1 @@
+window.__NUXT__=(function(a,b){return {staticAssetsBase:"\u002Fsocial-todo\u002F_nuxt\u002Fstatic\u002F1616461069",layout:"default",error:a,state:{staticRendered:b,backend:{version:"0.1.0"},users:{users:a,currentUser:a}},serverRendered:b,routePath:"\u002F",config:{app:{basePath:"\u002Fsocial-todo\u002F",assetsPath:"\u002Fsocial-todo\u002F_nuxt\u002F",cdnURL:a}}}}(null,true));

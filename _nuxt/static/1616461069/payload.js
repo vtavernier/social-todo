@@ -1,0 +1,1 @@
+__NUXT_JSONP__("/", {data:[{}],fetch:{"Index:0":{}},mutations:[["backend\u002Ffetch",{version:"0.1.0"}]]});
