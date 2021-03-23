@@ -1,1 +1,0 @@
-__NUXT_JSONP__("/users", {data:[{}],fetch:{"Users:0":{}},mutations:[["users\u002FfetchAll",{users:[{createdAt:"2021-03-23T00:55:53.119659",id:1,name:"Admin",role:"admin"}]}]]});
