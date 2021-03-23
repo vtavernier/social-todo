@@ -10,7 +10,7 @@
     "generate": "nuxt generate",
     "lint:js": "eslint --ext \".js,.ts,.vue\" --ignore-path .gitignore .",
     "lint": "yarn lint:js",
-    "serve": "SOCIAL_TODO_BACKEND=http://localhost:8880 run-p -l dev back",
+    "serve": "SOCIAL_TODO_BACKEND=http://localhost:8880 SOCIAL_TODO_SSR=true run-p -l dev back",
     "test": "jest"
   },
   "dependencies": {

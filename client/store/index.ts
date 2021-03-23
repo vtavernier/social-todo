@@ -23,7 +23,7 @@ export const actions = {
   nuxtServerInit({ commit }: { commit: any }, { req: _req }: { req: any }) {
     const backend = process.env.SOCIAL_TODO_BACKEND
     if (backend) {
-      commit('setStaticRendered', true)
+      commit('setStaticRendered', process.env.SOCIAL_TODO_SSR !== 'true')
       initializeApi(backend)
     }
   },
