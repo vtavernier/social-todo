@@ -1,3 +1,16 @@
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+	NEW.updated_at = CURRENT_TIMESTAMP;
+	RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
+
+DROP TRIGGER IF EXISTS users_update_timestamp ON users;
+DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS user_role;
+DROP COLLATION IF EXISTS username_collation;
+
 CREATE COLLATION username_collation (
 	provider = icu,
 	locale = 'und-u-ks-level2',
@@ -32,3 +45,7 @@ CREATE TABLE users (
 
 CREATE TRIGGER users_update_timestamp BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE PROCEDURE update_timestamp();
+
+-- Insert a sample admin user (with admin password)
+INSERT INTO users (id, name, password, role)
+VALUES (1, 'Admin', '$2b$12$nWpEhB8I/INUsxS/6TZjVenGudV11Rss/.7xQcPpvNalI.UFUBL62', 'admin');
