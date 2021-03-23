@@ -96,7 +96,7 @@ jobs:
           export SOCIAL_TODO_SESSION_KEY=Ua6zie1unaeghahpaisheiqu0reemain
           # Client params
           #  Used by the static build to contact the backend
-          export SOCIAL_TODO_BACKEND=http://localhost:8880/
+          export SOCIAL_TODO_BACKEND=http://localhost:8880
           #  Base URL for GitHub pages
           export SOCIAL_TODO_FRONTEND_BASE=/social-todo/
 
