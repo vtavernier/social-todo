@@ -1,7 +1,6 @@
 # [social-todo](https://github.com/vtavernier/social-todo)
 
-![Client Status](https://github.com/vtavernier/social-todo/workflows/client/badge.svg)
-![Server Status](https://github.com/vtavernier/social-todo/workflows/server/badge.svg)
+![Build Status](https://github.com/vtavernier/social-todo/workflows/build/badge.svg)
 
 This repository implements a modern web application and server using a Rust
 backend server, and a pre-rendered Vue frontend. This is more of an experiment

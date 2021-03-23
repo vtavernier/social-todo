@@ -1,0 +1,119 @@
+name: build
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: [14]
+
+    services:
+      postgres:
+        image: postgres:12.6
+        env:
+          POSTGRES_USER: social_todo
+          POSTGRES_PASSWORD: social_todo
+          POSTGRES_DB: social_todo_production
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Setup toolchains
+      - uses: actions/setup-node@v2.1.2
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+
+      # Setup caches
+      - name: Cache Rust dependencies
+        uses: actions/cache@v2
+        id: cargo-cache
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+        working-directory: client
+
+      - name: Cache node_modules
+        uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install node dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: client
+
+      # Setup database
+      - name: Initialize database
+        run: |
+          # Initialize schema
+          PGPASSWORD=social_todo psql -h localhost -p 5432 -U social_todo -f server/schema.sql social_todo_production
+
+      # Run lints
+      - name: Run client linter
+        run: yarn lint
+        working-directory: client
+
+      # Run tests
+      - name: Run client tests
+        run: yarn test
+        working-directory: client
+
+      # Build server
+      - name: Build server
+        run: cargo build
+
+      # Run the static build
+      - name: Build static files
+        run: |
+          # Server params
+          export DATABASE_URL=postgresql://social_todo:social_todo@localhost:5432/social_todo_production
+          export SOCIAL_TODO_LOG=debug
+          #  No need for this to be secret, since we have no sessions on static generation
+          export SOCIAL_TODO_SESSION_KEY=Ua6zie1unaeghahpaisheiqu0reemain
+          # Client params
+          #  Used by the static build to contact the backend
+          export SOCIAL_TODO_BACKEND=http://localhost:8880/
+          #  Base URL for GitHub pages
+          export SOCIAL_TODO_FRONTEND_BASE=/social-todo/
+
+          # Start the server
+          cargo run &
+          SERVER_PID=$!
+
+          # Run the static build
+          (cd client && yarn generate)
+
+          # Kill the server
+          kill -TERM $SERVER_PID
+          wait $SERVER_PID
+
+      # Deploy result to GitHub pages
+      - name: Deploy to GitHub pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./client/dist

@@ -72,6 +72,14 @@ export default {
     routes: process.env.SOCIAL_TODO_BACKEND ? [] : ['/users/_id/'],
   },
 
+  router: {
+    ...(process.env.SOCIAL_TODO_FRONTEND_BASE
+      ? {
+          base: process.env.SOCIAL_TODO_FRONTEND_BASE,
+        }
+      : {}),
+  },
+
   ...(process.env.NODE_ENV === 'development' && {
     proxy: {
       '/api': 'http://localhost:8880',
