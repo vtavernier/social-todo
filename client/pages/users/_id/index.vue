@@ -43,7 +43,7 @@ import { usersStore } from '~/store'
 
 @Component({ computed: { ...mapState('users', ['currentUser']) } })
 export default class UserDetails extends Vue {
-  async mounted() {
+  async fetch() {
     await usersStore.fetchCurrent({ id: parseInt(this.$route.params.id) })
   }
 }

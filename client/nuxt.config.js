@@ -23,7 +23,7 @@ export default {
   css: [],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
-  plugins: [],
+  plugins: ['plugins/fetch-hybrid.ts'],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,
@@ -69,7 +69,7 @@ export default {
   build: {},
 
   generate: {
-    routes: ['/users/_id/'],
+    routes: process.env.SOCIAL_TODO_BACKEND ? [] : ['/users/_id/'],
   },
 
   ...(process.env.NODE_ENV === 'development' && {

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosInstance } from 'axios'
 
 export interface BackendInfo {
   version: string
@@ -21,20 +21,37 @@ export interface UserList {
   users: Array<UserDetails>
 }
 
-class Api {
-  axios = axios.create()
+export class Api {
+  axios: AxiosInstance
+  public isServerBackend: boolean
+
+  constructor(baseURL?: string) {
+    const suffix = '/api/v1/'
+
+    if (baseURL === undefined) {
+      this.axios = axios.create({ baseURL: suffix })
+      this.isServerBackend = false
+    } else {
+      this.axios = axios.create({ baseURL: `${baseURL}${suffix}` })
+      this.isServerBackend = true
+    }
+  }
 
   public async fetchBackend() {
-    return (await this.axios.get('/api/v1/')).data as BackendInfo
+    return (await this.axios.get('/')).data as BackendInfo
   }
 
   public async fetchUsers() {
-    return (await this.axios.get('/api/v1/users/')).data as UserList
+    return (await this.axios.get('/users/')).data as UserList
   }
 
   public async fetchUser(id: number) {
-    return (await this.axios.get(`/api/v1/users/${id}/`)).data as UserDetails
+    return (await this.axios.get(`/users/${id}/`)).data as UserDetails
   }
 }
 
-export const api = new Api()
+export let api = new Api()
+
+export function initializeApi(baseURL?: string) {
+  api = new Api(baseURL)
+}

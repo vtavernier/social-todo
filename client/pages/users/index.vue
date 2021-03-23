@@ -32,7 +32,7 @@ import { usersStore } from '~/store'
 
 @Component({ computed: { ...mapState('users', ['users']) } })
 export default class Users extends Vue {
-  async mounted() {
+  async fetch() {
     await usersStore.fetchAll()
   }
 }

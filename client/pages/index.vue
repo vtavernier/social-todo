@@ -25,7 +25,7 @@ import { backendStore } from '~/store'
   computed: { ...mapState('backend', ['version']) },
 })
 export default class Index extends Vue {
-  async mounted() {
+  async fetch() {
     await backendStore.fetch()
   }
 }
