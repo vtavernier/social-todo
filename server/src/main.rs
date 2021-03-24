@@ -28,6 +28,10 @@ struct Opts {
     /// Skip loading .env
     #[structopt(long)]
     no_env: bool,
+
+    /// Target database URL
+    #[structopt(long, env = "DATABASE_URL")]
+    database_url: String,
 }
 
 fn resolve_webroot(webroot: &Option<PathBuf>) -> std::io::Result<PathBuf> {
@@ -99,11 +103,11 @@ async fn main() -> color_eyre::eyre::Result<()> {
     }
 
     // Create the database connection pool
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
+    let database_url = &opts.database_url;
     info!(%database_url, "connecting to database");
 
     let db_pool = sqlx::postgres::PgPoolOptions::new()
-        .connect(&&database_url)
+        .connect(database_url)
         .await?;
 
     let server = HttpServer::new({
