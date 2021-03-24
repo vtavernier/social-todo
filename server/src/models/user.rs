@@ -100,3 +100,17 @@ impl Responder for UserDetails {
         HttpResponse::Ok().json(&self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::*;
+
+    #[test]
+    fn test_user_fetch_all() {
+        actix_rt::System::new().block_on(async {
+            let conn = get_connector().await;
+            assert!(!User::find_all(&conn).await.unwrap().is_empty())
+        })
+    }
+}

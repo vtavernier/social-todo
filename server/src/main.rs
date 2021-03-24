@@ -1,19 +1,15 @@
 #[macro_use]
-extern crate derive_more;
-#[macro_use]
-extern crate sqlx;
-#[macro_use]
 extern crate tracing;
 
 use std::path::PathBuf;
 
 use actix_web::{App, HttpServer};
 use structopt::StructOpt;
-
 use tracing_subscriber::util::SubscriberInitExt;
 
+use social_todo_server::models;
+
 mod api;
-mod models;
 
 #[derive(StructOpt)]
 struct Opts {

@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpResponse, Responder};
 use serde_json::json;
 
-use crate::models;
+use social_todo_server::models;
 
 #[get("/")]
 async fn index(conn: web::Data<models::Connector>) -> impl Responder {
