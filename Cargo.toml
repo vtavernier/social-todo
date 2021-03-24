@@ -1,2 +1,5 @@
 [workspace]
 members = ["server"]
+
+[patch.crates-io]
+actix-session = { git = "https://github.com/actix/actix-extras.git" }

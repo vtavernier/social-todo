@@ -105,6 +105,8 @@ async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
         None
     };
 
+    // Create the session middleware
+    // TODO: Session expiration time?
     let server = HttpServer::new({
         let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
             Ok(path) => {
@@ -117,12 +119,21 @@ async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
             }
         };
 
+        let session_key = opts.session_key.as_bytes().to_vec();
+
         move || {
             let app = App::new()
                 .data(models::Connector {
                     pg_pool: db_pool.clone(),
                     redis_pool: redis_pool.clone(),
                 })
+                .wrap(
+                    actix_session::CookieSession::signed(&session_key)
+                        .name("social-todo-session")
+                        .lazy(true)
+                        .secure(true)
+                        .http_only(true),
+                )
                 .wrap(tracing_actix_web::TracingLogger)
                 .configure(api::config);
 
