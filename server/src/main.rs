@@ -1,4 +1,8 @@
 #[macro_use]
+extern crate derive_more;
+#[macro_use]
+extern crate sqlx;
+#[macro_use]
 extern crate tracing;
 
 use std::path::PathBuf;
