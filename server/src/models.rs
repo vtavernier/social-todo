@@ -5,12 +5,12 @@ use actix_web::{HttpResponse, Responder, ResponseError};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-#[derive(Debug, thiserror::Error, Serialize)]
+#[derive(Debug, derive_more::Error, derive_more::Display, Serialize)]
 pub enum ModelError {
-    #[error("database error: {0}")]
+    #[display("database error: {0}")]
     #[serde(serialize_with = "use_display")]
-    Sqlx(#[source] sqlx::Error),
-    #[error("record not found")]
+    Sqlx(#[error(source)] sqlx::Error),
+    #[display("record not found")]
     NotFound,
 }
 
@@ -55,10 +55,27 @@ pub enum UserRole {
     Admin,
 }
 
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    sqlx::Type,
+    derive_more::Display,
+)]
+#[sqlx(transparent)]
+#[display("{0}")]
+pub struct UserId(pub i32);
+
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
-    pub id: i32,
+    pub id: UserId,
     pub name: String,
     pub password: String,
     pub role: UserRole,
@@ -93,7 +110,7 @@ impl Responder for User {
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDetails {
-    pub id: i32,
+    pub id: UserId,
     pub name: String,
     pub role: UserRole,
     pub created_at: chrono::NaiveDateTime,
