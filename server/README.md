@@ -7,6 +7,10 @@ Rust backend using [actix-web](https://actix.rs/) for
 
 ## Usage
 
+Note that if a Redis instance is running at `$REDIS_URL` (see its value in
+[`.env`](.env)), caching will be enabled on a successful response from the
+server. The database server will be hit directly on every request otherwise.
+
 Running the backend server:
 
 ```bash

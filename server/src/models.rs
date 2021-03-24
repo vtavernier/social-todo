@@ -1,6 +1,9 @@
 // Some query methods are not used yet
 #![allow(dead_code)]
 
+mod connector;
+pub use connector::*;
+
 use actix_web::{HttpResponse, Responder, ResponseError};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -85,9 +88,9 @@ pub struct User {
 }
 
 impl User {
-    pub async fn find_all(pg_pool: &sqlx::PgPool) -> Result<Vec<Self>, ModelError> {
+    pub async fn find_all(conn: &Connector) -> Result<Vec<Self>, ModelError> {
         Ok(sqlx::query_as::<_, Self>("SELECT * FROM users ORDER BY id")
-            .fetch_all(pg_pool)
+            .fetch_all(&conn.pg_pool)
             .await?)
     }
 
@@ -117,19 +120,23 @@ pub struct UserDetails {
 }
 
 impl UserDetails {
-    pub async fn find(pg_pool: &sqlx::PgPool, id: i32) -> Result<Self, ModelError> {
-        Ok(
-            sqlx::query_as::<_, Self>("SELECT id, name, role, created_at FROM users WHERE id = $1")
+    pub async fn find(conn: &Connector, id: i32) -> Result<Self, ModelError> {
+        Ok(conn
+            .cached(&format!("user_details:{}", id), |pg_pool| async move {
+                sqlx::query_as::<_, Self>(
+                    "SELECT id, name, role, created_at FROM users WHERE id = $1",
+                )
                 .bind(id)
                 .fetch_one(pg_pool)
-                .await?,
-        )
+                .await
+            })
+            .await?)
     }
 
-    pub async fn find_all(pg_pool: &sqlx::PgPool) -> Result<Vec<Self>, ModelError> {
+    pub async fn find_all(conn: &Connector) -> Result<Vec<Self>, ModelError> {
         Ok(
             sqlx::query_as::<_, Self>("SELECT id, name, role, created_at FROM users ORDER BY id")
-                .fetch_all(pg_pool)
+                .fetch_all(&conn.pg_pool)
                 .await?,
         )
     }

@@ -36,6 +36,10 @@ struct Opts {
     /// Session key
     #[structopt(long, env = "SOCIAL_TODO_SESSION_KEY", hide_env_values = true)]
     session_key: String,
+
+    /// Redis URL
+    #[structopt(long, env = "REDIS_URL")]
+    redis_url: Option<String>,
 }
 
 fn resolve_webroot(webroot: &Option<PathBuf>) -> std::io::Result<PathBuf> {
@@ -58,8 +62,92 @@ fn file_service(webroot: &PathBuf, target: &'static str) -> actix_web::Route {
     actix_web::web::get().to(move || serve_file(webroot.clone(), target))
 }
 
-#[actix_web::main]
-async fn main() -> color_eyre::eyre::Result<()> {
+async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
+    // Create the database connection pool
+    let database_url = &opts.database_url;
+    info!(%database_url, "connecting to database");
+
+    let db_pool = sqlx::postgres::PgPoolOptions::new()
+        .connect(database_url)
+        .await?;
+
+    // Create the Redis pool
+    let redis_pool = if let Some(redis_url) = &opts.redis_url {
+        info!(%redis_url, "connecting to Redis");
+        let client = redis::Client::open(redis_url.as_str())?;
+
+        // Ping the Redis instance
+        let id = std::process::id();
+        let result = match client.get_async_connection().await {
+            Ok(mut conn) => {
+                redis::pipe()
+                    .atomic()
+                    .set("ping", id)
+                    .ignore()
+                    .get("ping")
+                    .del("ping")
+                    .ignore()
+                    .query_async::<_, Vec<u32>>(&mut conn)
+                    .await
+            }
+            Err(error) => Err(error),
+        };
+
+        let expected: Result<_, redis::RedisError> = Ok(vec![id]);
+        if result != expected {
+            error!(?expected, actual = ?result, "Redis ping failed, disabling cache");
+            None
+        } else {
+            Some(client.get_multiplexed_async_connection().await?)
+        }
+    } else {
+        info!("no Redis URL specified, disabling cache");
+        None
+    };
+
+    let server = HttpServer::new({
+        let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
+            Ok(path) => {
+                info!(path = %path.display(), "resolved webroot");
+                Some(path)
+            }
+            Err(error) => {
+                warn!(%error, "could not resolve webroot");
+                None
+            }
+        };
+
+        move || {
+            let app = App::new()
+                .data(models::Connector {
+                    pg_pool: db_pool.clone(),
+                    redis_pool: redis_pool.clone(),
+                })
+                .wrap(tracing_actix_web::TracingLogger)
+                .configure(api::config);
+
+            if let Some(webroot) = &webroot {
+                app.route("/users/", file_service(webroot, "users/index.html"))
+                    .route(
+                        "/users/{id}/",
+                        file_service(webroot, "users/_id/index.html"),
+                    )
+                    .service(actix_files::Files::new("/", &webroot).index_file("index.html"))
+            } else {
+                app
+            }
+        }
+    })
+    .bind(&opts.bind)?;
+
+    info!(bind = opts.bind.as_str(), "social-todo-server running");
+
+    server.run().await?;
+
+    Ok(())
+}
+
+fn main() -> color_eyre::eyre::Result<()> {
     // Install eyre handler
     color_eyre::install()?;
 
@@ -90,7 +178,6 @@ async fn main() -> color_eyre::eyre::Result<()> {
             }),
         )
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
-        .without_time()
         .finish()
         .init();
 
@@ -106,49 +193,12 @@ async fn main() -> color_eyre::eyre::Result<()> {
         }
     }
 
-    // Create the database connection pool
-    let database_url = &opts.database_url;
-    info!(%database_url, "connecting to database");
-
-    let db_pool = sqlx::postgres::PgPoolOptions::new()
-        .connect(database_url)
-        .await?;
-
-    let server = HttpServer::new({
-        let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
-            Ok(path) => {
-                info!(path = %path.display(), "resolved webroot");
-                Some(path)
-            }
-            Err(error) => {
-                warn!(%error, "could not resolve webroot");
-                None
-            }
-        };
-
-        move || {
-            let app = App::new()
-                .data(db_pool.clone())
-                .wrap(tracing_actix_web::TracingLogger)
-                .configure(api::config);
-
-            if let Some(webroot) = &webroot {
-                app.route("/users/", file_service(webroot, "users/index.html"))
-                    .route(
-                        "/users/{id}/",
-                        file_service(webroot, "users/_id/index.html"),
-                    )
-                    .service(actix_files::Files::new("/", &webroot).index_file("index.html"))
-            } else {
-                app
-            }
-        }
+    actix_rt::System::with_tokio_rt(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads((num_cpus::get() / 8).max(4).min(2))
+            .enable_all()
+            .build()
+            .unwrap()
     })
-    .bind(&opts.bind)?;
-
-    info!(bind = opts.bind.as_str(), "social-todo-server running");
-
-    server.run().await?;
-
-    Ok(())
+    .block_on(run(&opts))
 }
