@@ -32,6 +32,10 @@ struct Opts {
     /// Target database URL
     #[structopt(long, env = "DATABASE_URL")]
     database_url: String,
+
+    /// Session key
+    #[structopt(long, env = "SOCIAL_TODO_SESSION_KEY", hide_env_values = true)]
+    session_key: String,
 }
 
 fn resolve_webroot(webroot: &Option<PathBuf>) -> std::io::Result<PathBuf> {
