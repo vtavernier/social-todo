@@ -163,15 +163,23 @@ fn main() -> color_eyre::eyre::Result<()> {
     // Install eyre handler
     color_eyre::install()?;
 
+    // Load environment variables
+    let delimiter: std::ffi::OsString = "--".into();
+    let no_env: std::ffi::OsString = "--no-env".into();
+    let (raw_no_env, dotenv_path) = if !std::env::args_os()
+        .take_while(|arg| *arg != delimiter)
+        .any(|arg| arg == no_env)
+    {
+        (false, Some(dotenv::dotenv()))
+    } else {
+        (true, None)
+    };
+
     // Load options
     let opts = Opts::from_args();
 
-    // Load environment variables
-    let dotenv_path = if !opts.no_env {
-        Some(dotenv::dotenv())
-    } else {
-        None
-    };
+    // Check that we parsed --no-env correctly
+    assert_eq!(opts.no_env, raw_no_env);
 
     // Initialize logger
     tracing_subscriber::fmt()
