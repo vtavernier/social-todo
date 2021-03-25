@@ -106,7 +106,6 @@ async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
     };
 
     // Create the session middleware
-    // TODO: Session expiration time?
     let server = HttpServer::new({
         let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
             Ok(path) => {
@@ -128,10 +127,12 @@ async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
                     redis_pool: redis_pool.clone(),
                 })
                 .wrap(
-                    actix_session::CookieSession::signed(&session_key)
+                    // TODO: Session expiration time?
+                    // TODO: Secure when bind URL has https as protocol?
+                    actix_session::CookieSession::private(&session_key)
                         .name("social-todo-session")
+                        .secure(false)
                         .lazy(true)
-                        .secure(true)
                         .http_only(true),
                 )
                 .wrap(tracing_actix_web::TracingLogger)
