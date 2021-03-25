@@ -21,6 +21,15 @@ export interface UserList {
   users: Array<UserDetails>
 }
 
+export interface LoginRequest {
+  name: string
+  password: string
+}
+
+export interface AuthResponse {
+  user: UserDetails | null
+}
+
 export class Api {
   axios: AxiosInstance
   public isServerBackend: boolean
@@ -47,6 +56,18 @@ export class Api {
 
   public async fetchUser(id: number) {
     return (await this.axios.get(`/users/${id}/`)).data as UserDetails
+  }
+
+  public async fetchAuth() {
+    return (await this.axios.get(`/auth/`)).data as AuthResponse
+  }
+
+  public async login(rq: LoginRequest) {
+    return (await this.axios.post(`/auth/`, rq)).data as AuthResponse
+  }
+
+  public async logout() {
+    await this.axios.delete(`/auth/`)
   }
 }
 

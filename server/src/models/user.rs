@@ -1,4 +1,4 @@
-use actix_web::{web::HttpResponse, Responder};
+use actix_web::{http::StatusCode, web::HttpResponse, Responder, ResponseError};
 use serde::{Deserialize, Serialize};
 
 use super::{Connector, ModelError};
@@ -40,6 +40,27 @@ pub struct User {
     pub last_login_at: Option<chrono::NaiveDateTime>,
 }
 
+#[derive(Debug, Error, Display, From)]
+pub enum LoginError {
+    #[display("invalid user credentials")]
+    InvalidCredentials,
+    #[display("internal error: {0}")]
+    InternalError(#[error(source)] ModelError),
+}
+
+impl ResponseError for LoginError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        match self {
+            LoginError::InvalidCredentials => StatusCode::UNAUTHORIZED,
+            LoginError::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::new(self.status_code())
+    }
+}
+
 impl User {
     pub async fn find_all(conn: &Connector) -> Result<Vec<Self>, ModelError> {
         Ok(sqlx::query_as::<_, Self>("SELECT * FROM users ORDER BY id")
@@ -47,10 +68,41 @@ impl User {
             .await?)
     }
 
-    pub fn as_details(&self) -> UserDetails {
+    pub async fn find_by_name(conn: &Connector, name: &str) -> Result<Self, ModelError> {
+        Ok(
+            sqlx::query_as::<_, Self>("SELECT * FROM users WHERE name = $1")
+                .bind(name)
+                .fetch_one(&conn.pg_pool)
+                .await?,
+        )
+    }
+
+    pub async fn login(conn: &Connector, name: &str, password: &str) -> Result<Self, LoginError> {
+        // Get the full user record for the given name
+        let user = Self::find_by_name(conn, name)
+            .await
+            .map_err(|err| match err {
+                ModelError::NotFound => LoginError::InvalidCredentials,
+                other => LoginError::InternalError(other),
+            })?;
+
+        // Check the bcrypt password
+        let bcrypt_result = bcrypt::verify(password, &user.password).map_err(|err| {
+            warn!(%err, "bcrypt error");
+            LoginError::InvalidCredentials
+        })?;
+
+        if bcrypt_result {
+            Ok(user)
+        } else {
+            Err(LoginError::InvalidCredentials)
+        }
+    }
+
+    pub fn into_details(self) -> UserDetails {
         UserDetails {
             id: self.id,
-            name: self.name.clone(),
+            name: self.name,
             role: self.role,
             created_at: self.created_at,
         }

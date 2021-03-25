@@ -1,6 +1,7 @@
 use actix_web::{get, web, HttpResponse, Result};
 use serde_json::json;
 
+mod auth;
 mod users;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -11,5 +12,10 @@ async fn index() -> Result<HttpResponse> {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/v1").service(index).configure(users::config));
+    cfg.service(
+        web::scope("/v1")
+            .service(index)
+            .configure(auth::config)
+            .configure(users::config),
+    );
 }

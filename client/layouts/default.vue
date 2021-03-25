@@ -44,6 +44,16 @@
           >{{ item.title }}</v-btn
         >
       </template>
+      <v-spacer />
+      <template v-if="currentUser">
+        <v-avatar class="mr-2" color="primary">{{
+          currentUser.name[0]
+        }}</v-avatar>
+        <v-btn @click.stop="logout">Logout</v-btn>
+      </template>
+      <template v-else>
+        <v-btn to="/login" router exact>Login</v-btn>
+      </template>
     </v-app-bar>
     <v-main>
       <v-container>
@@ -65,6 +75,8 @@
 </template>
 
 <script>
+import { authStore } from '~/store'
+
 export default {
   data() {
     return {
@@ -83,6 +95,23 @@ export default {
       ],
       title: 'social-todo',
     }
+  },
+
+  computed: {
+    currentUser() {
+      return authStore.user
+    },
+  },
+
+  async mounted() {
+    await authStore.fetch()
+  },
+
+  methods: {
+    async logout() {
+      await authStore.logout()
+      this.$router.push('/')
+    },
   },
 }
 </script>
