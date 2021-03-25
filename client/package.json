@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "back": "cd ../server && cargo watch -x run",
+    "back": "cd ../server && cargo watch -x 'run --release'",
     "dev": "nuxt",
     "build": "nuxt build",
     "start": "nuxt start",
