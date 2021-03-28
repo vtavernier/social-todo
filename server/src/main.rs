@@ -18,8 +18,8 @@ struct Opts {
     verbose: u32,
 
     /// Bind address
-    #[structopt(short, long, default_value = "127.0.0.1:8880")]
-    bind: String,
+    #[structopt(short, long, default_value = "http://127.0.0.1:8880")]
+    bind: url::Url,
 
     /// Path to static files to serve as root
     #[structopt(short, long)]
@@ -63,6 +63,18 @@ fn file_service(webroot: &PathBuf, target: &'static str) -> actix_web::Route {
 }
 
 async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
+    // Resolve the bind url
+    let mut bind_url = opts.bind.clone();
+
+    // Do we have $PORT set?
+    let has_port = if let Ok(Ok(port)) = std::env::var("PORT").map(|port| port.parse::<u16>()) {
+        bind_url.set_host(Some("0.0.0.0"))?;
+        bind_url.set_port(Some(port)).unwrap();
+        true
+    } else {
+        false
+    };
+
     // Create the database connection pool
     let database_url = &opts.database_url;
     info!(%database_url, "connecting to database");
@@ -105,6 +117,13 @@ async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
         None
     };
 
+    // Should the cookies have the secure flag?
+    //   If PORT is set for the binding, then we have to be running in production
+    let cookie_secure = has_port || bind_url.scheme() == "https";
+
+    // Resolve bind url
+    let socket_addrs = bind_url.socket_addrs(|| None)?;
+
     // Create the session middleware
     let server = HttpServer::new({
         let webroot = match std::fs::canonicalize(resolve_webroot(&opts.webroot)?) {
@@ -128,10 +147,9 @@ async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
                 })
                 .wrap(
                     // TODO: Session expiration time?
-                    // TODO: Secure when bind URL has https as protocol?
                     actix_session::CookieSession::private(&session_key)
                         .name("social-todo-session")
-                        .secure(false)
+                        .secure(cookie_secure)
                         .lazy(true)
                         .http_only(true),
                 )
@@ -150,9 +168,9 @@ async fn run(opts: &Opts) -> color_eyre::eyre::Result<()> {
             }
         }
     })
-    .bind(&opts.bind)?;
+    .bind(&*socket_addrs)?;
 
-    info!(bind = opts.bind.as_str(), "social-todo-server running");
+    info!(bind = ?socket_addrs, "social-todo-server running");
 
     server.run().await?;
 
