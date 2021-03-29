@@ -32,6 +32,6 @@ See the respective READMEs for instructions.
 * [`client`](client/): frontend application
 * [`server`](server/): backend server
 
-## Author
+## Author
 
 Vincent Tavernier <vince.tavernier@gmail.com>
